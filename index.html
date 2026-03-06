@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>打球名單</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --primary: #2563eb;
+      --danger: #dc2626;
+      --ok: #059669;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.04);
+      margin-bottom: 16px;
+    }
+    h1, h2 { margin: 0 0 12px; }
+    .sub {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .stat {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fafafa;
+    }
+    .label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    form { display: grid; gap: 12px; }
+    input, button, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 16px;
+    }
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: white;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li.member {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    li.member:last-child { border-bottom: none; }
+    .member-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .member-name { font-weight: 600; }
+    .member-note {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .msg {
+      margin-top: 10px;
+      font-size: 14px;
+      min-height: 20px;
+    }
+    .ok { color: var(--ok); }
+    .err { color: var(--danger); }
+    .footer-note {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    @media (max-width: 640px) {
+      .stats, .row { grid-template-columns: 1fr; }
+      .value { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1 id="eventTitle">讀取中...</h1>
+      <div class="sub" id="eventInfo">正在載入活動資料</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="label">目前人數</div>
+          <div class="value" id="countNow">-</div>
+        </div>
+        <div class="stat">
+          <div class="label">總名額</div>
+          <div class="value" id="countMax">-</div>
+        </div>
+        <div class="stat">
+          <div class="label">剩餘空缺</div>
+          <div class="value" id="countLeft">-</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>目前名單</h2>
+      <ul id="memberList"></ul>
+      <div class="footer-note">加入或取消後，名單會即時更新。</div>
+    </div>
+
+    <div class="card">
+      <h2>加入名單</h2>
+      <form id="joinForm">
+        <div class="row">
+          <input type="text" id="name" placeholder="姓名 / 暱稱" required />
+          <input type="text" id="phone" placeholder="聯絡方式（可選）" />
+        </div>
+        <textarea id="note" rows="3" placeholder="備註（可選，例如：可能晚到 10 分鐘）"></textarea>
+        <button type="submit" id="joinBtn">加入名單</button>
+        <div class="msg" id="joinMsg"></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>取消名單</h2>
+      <form id="leaveForm">
+        <input type="text" id="leaveName" placeholder="請輸入加入時的姓名 / 暱稱" required />
+        <button type="submit" class="secondary" id="leaveBtn">取消報名</button>
+        <div class="msg" id="leaveMsg"></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwXC6kai56OcDOOzBg5DxDVKml7alLJWU780lSUzCtKL2BvuZ9bwgeCBYkn24jh4i7Y/exec";
+
+    async function api(action, payload = {}) {
+      const url = `${API_URL}?action=${encodeURIComponent(action)}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
+      });
+      return await res.json();
+    }
+
+    function renderRoster(data) {
+      const event = data.event || {};
+      const members = data.members || [];
+      const max = Number(event.maxPlayers || 0);
+      const now = members.length;
+      const left = Math.max(max - now, 0);
+
+      document.getElementById("eventTitle").textContent = event.title || "打球名單";
+      document.getElementById("eventInfo").textContent =
+        `${event.date || ""} ${event.time || ""} ${event.location ? "｜" + event.location : ""}`.trim();
+      document.getElementById("countNow").textContent = now;
+      document.getElementById("countMax").textContent = max;
+      document.getElementById("countLeft").textContent = left;
+
+      const list = document.getElementById("memberList");
+      list.innerHTML = "";
+      if (!members.length) {
+        list.innerHTML = `<li class="member"><div class="member-info"><div class="member-name">目前還沒有人</div></div></li>`;
+        return;
+      }
+
+      members.forEach((m, idx) => {
+        const li = document.createElement("li");
+        li.className = "member";
+        li.innerHTML = `
+          <div class="member-info">
+            <div class="member-name">${idx + 1}. ${escapeHtml(m.name || "")}</div>
+            <div class="member-note">
+              ${m.phone ? `聯絡：${escapeHtml(m.phone)}　` : ""}
+              ${m.note ? `備註：${escapeHtml(m.note)}` : ""}
+            </div>
+          </div>
+          <div class="member-note">${escapeHtml(m.createdAt || "")}</div>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function showMsg(id, text, ok = true) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = `msg ${ok ? "ok" : "err"}`;
+    }
+
+    async function loadRoster() {
+      try {
+        const data = await api("getRoster");
+        if (!data.ok) throw new Error(data.message || "讀取失敗");
+        renderRoster(data);
+      } catch (e) {
+        document.getElementById("eventTitle").textContent = "載入失敗";
+        document.getElementById("eventInfo").textContent = e.message;
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    document.getElementById("joinForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("joinBtn");
+      btn.disabled = true;
+      showMsg("joinMsg", "送出中...", true);
+
+      try {
+        const payload = {
+          name: document.getElementById("name").value.trim(),
+          phone: document.getElementById("phone").value.trim(),
+          note: document.getElementById("note").value.trim(),
+        };
+        const data = await api("join", payload);
+        if (!data.ok) throw new Error(data.message || "加入失敗");
+        showMsg("joinMsg", data.message || "加入成功", true);
+        document.getElementById("joinForm").reset();
+        renderRoster(data);
+      } catch (e) {
+        showMsg("joinMsg", e.message, false);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById("leaveForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("leaveBtn");
+      btn.disabled = true;
+      showMsg("leaveMsg", "處理中...", true);
+
+      try {
+        const payload = {
+          name: document.getElementById("leaveName").value.trim(),
+        };
+        const data = await api("leave", payload);
+        if (!data.ok) throw new Error(data.message || "取消失敗");
+        showMsg("leaveMsg", data.message || "已取消", true);
+        document.getElementById("leaveForm").reset();
+        renderRoster(data);
+      } catch (e) {
+        showMsg("leaveMsg", e.message, false);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    loadRoster();
+  </script>
+</body>
+</html>
