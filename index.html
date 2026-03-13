@@ -14,6 +14,9 @@
       --primary: #2563eb;
       --danger: #dc2626;
       --ok: #059669;
+      --fixed: #f59e0b;
+      --male: #2563eb;
+      --female: #db2777;
     }
     * { box-sizing: border-box; }
     body {
@@ -23,7 +26,7 @@
       color: var(--text);
     }
     .wrap {
-      max-width: 820px;
+      max-width: 960px;
       margin: 0 auto;
       padding: 24px 16px 48px;
     }
@@ -36,14 +39,16 @@
       margin-bottom: 16px;
     }
     h1, h2 { margin: 0 0 12px; }
-    .sub {
-      color: var(--muted);
-      font-size: 14px;
-      margin-bottom: 16px;
-    }
+    .sub { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
     .stats {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .stats-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
       gap: 12px;
       margin-top: 12px;
     }
@@ -53,22 +58,19 @@
       padding: 14px;
       background: #fafafa;
     }
-    .label {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    .value {
-      font-size: 28px;
-      font-weight: 700;
-    }
+    .label { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .value { font-size: 28px; font-weight: 700; }
+    .male { color: var(--male); }
+    .female { color: var(--female); }
+
     form { display: grid; gap: 12px; }
-    input, button, textarea {
+    input, button, textarea, select {
       width: 100%;
       padding: 12px 14px;
       border-radius: 10px;
       border: 1px solid var(--border);
       font-size: 16px;
+      background: white;
     }
     button {
       background: var(--primary);
@@ -83,50 +85,70 @@
       border: 1px solid var(--border);
     }
     button:disabled { opacity: .6; cursor: not-allowed; }
-    .row {
+
+    .row2, .row3 {
       display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
+    .row2 { grid-template-columns: repeat(2, 1fr); }
+    .row3 { grid-template-columns: repeat(3, 1fr); }
+
+    ul { list-style: none; padding: 0; margin: 0; }
     li.member {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       gap: 12px;
-      padding: 12px 0;
+      padding: 14px 0;
       border-bottom: 1px solid var(--border);
     }
     li.member:last-child { border-bottom: none; }
-    .member-info {
+
+    .member-info { display: flex; flex-direction: column; gap: 4px; }
+    .member-name {
+      font-weight: 600;
       display: flex;
-      flex-direction: column;
-      gap: 4px;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
-    .member-name { font-weight: 600; }
     .member-note {
       color: var(--muted);
       font-size: 13px;
+      line-height: 1.5;
     }
-    .msg {
-      margin-top: 10px;
-      font-size: 14px;
-      min-height: 20px;
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
     }
+    .badge-fixed { background: #fff7ed; color: #b45309; border-color: #fed7aa; }
+    .badge-male { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .badge-female { background: #fdf2f8; color: #be185d; border-color: #fbcfe8; }
+
+    .mini-btn {
+      width: auto;
+      padding: 8px 10px;
+      font-size: 13px;
+      border-radius: 8px;
+      border: 1px solid #fecaca;
+      background: #fff5f5;
+      color: var(--danger);
+    }
+
+    .msg { margin-top: 10px; font-size: 14px; min-height: 20px; }
     .ok { color: var(--ok); }
     .err { color: var(--danger); }
-    .footer-note {
-      color: var(--muted);
-      font-size: 13px;
-      margin-top: 8px;
-    }
-    @media (max-width: 640px) {
-      .stats, .row { grid-template-columns: 1fr; }
+    .hint { color: var(--muted); font-size: 13px; }
+    .footer-note { color: var(--muted); font-size: 13px; margin-top: 8px; }
+
+    @media (max-width: 760px) {
+      .stats, .stats-2, .row2, .row3 { grid-template-columns: 1fr; }
       .value { font-size: 24px; }
+      li.member { flex-direction: column; }
     }
   </style>
 </head>
@@ -137,7 +159,7 @@
       <div class="sub" id="eventInfo">正在載入活動資料</div>
       <div class="stats">
         <div class="stat">
-          <div class="label">目前人數</div>
+          <div class="label">目前總人數</div>
           <div class="value" id="countNow">-</div>
         </div>
         <div class="stat">
@@ -148,33 +170,60 @@
           <div class="label">剩餘空缺</div>
           <div class="value" id="countLeft">-</div>
         </div>
+        <div class="stat">
+          <div class="label">固定名單</div>
+          <div class="value" id="countFixed">-</div>
+        </div>
+      </div>
+      <div class="stats-2">
+        <div class="stat">
+          <div class="label">男生名單</div>
+          <div class="value male" id="countMale">-</div>
+        </div>
+        <div class="stat">
+          <div class="label">女生名單</div>
+          <div class="value female" id="countFemale">-</div>
+        </div>
       </div>
     </div>
 
     <div class="card">
       <h2>目前名單</h2>
       <ul id="memberList"></ul>
-      <div class="footer-note">加入或取消後，名單會即時更新。</div>
+      <div class="footer-note">固定名單會特別標示，一般名單可快速取消。</div>
     </div>
 
     <div class="card">
       <h2>加入名單</h2>
       <form id="joinForm">
-        <div class="row">
-          <input type="text" id="name" placeholder="姓名 / 暱稱" required />
+        <div class="row3">
+          <input type="text" id="name" placeholder="要加入的姓名 / 暱稱" required />
+          <select id="gender" required>
+            <option value="">請選擇性別</option>
+            <option value="男">男</option>
+            <option value="女">女</option>
+          </select>
           <input type="text" id="phone" placeholder="聯絡方式（可選）" />
         </div>
-        <textarea id="note" rows="3" placeholder="備註（可選，例如：可能晚到 10 分鐘）"></textarea>
+        <div class="row2">
+          <input type="text" id="createdBy" placeholder="報名人（本人就填自己）" required />
+          <input type="text" id="note" placeholder="備註（可選）" />
+        </div>
         <button type="submit" id="joinBtn">加入名單</button>
+        <div class="hint">加入成功後，系統會顯示取消碼。請自行保存。</div>
         <div class="msg" id="joinMsg"></div>
       </form>
     </div>
 
     <div class="card">
-      <h2>取消名單</h2>
+      <h2>快速取消報名</h2>
       <form id="leaveForm">
-        <input type="text" id="leaveName" placeholder="請輸入加入時的姓名 / 暱稱" required />
+        <div class="row2">
+          <input type="text" id="leaveName" placeholder="姓名 / 暱稱" required />
+          <input type="text" id="cancelCode" placeholder="取消碼" required />
+        </div>
         <button type="submit" class="secondary" id="leaveBtn">取消報名</button>
+        <div class="hint">固定名單不可由前台取消。</div>
         <div class="msg" id="leaveMsg"></div>
       </form>
     </div>
@@ -199,36 +248,64 @@
       const max = Number(event.maxPlayers || 0);
       const now = members.length;
       const left = Math.max(max - now, 0);
+      const male = members.filter(m => m.gender === "男").length;
+      const female = members.filter(m => m.gender === "女").length;
+      const fixed = members.filter(m => m.isFixed === true || String(m.isFixed).toUpperCase() === "TRUE").length;
 
       document.getElementById("eventTitle").textContent = event.title || "打球名單";
       document.getElementById("eventInfo").textContent =
         `${event.date || ""} ${event.time || ""} ${event.location ? "｜" + event.location : ""}`.trim();
+
       document.getElementById("countNow").textContent = now;
       document.getElementById("countMax").textContent = max;
       document.getElementById("countLeft").textContent = left;
+      document.getElementById("countMale").textContent = male;
+      document.getElementById("countFemale").textContent = female;
+      document.getElementById("countFixed").textContent = fixed;
 
       const list = document.getElementById("memberList");
       list.innerHTML = "";
+
       if (!members.length) {
-        list.innerHTML = `<li class="member"><div class="member-info"><div class="member-name">目前還沒有人</div></div></li>`;
+        list.innerHTML = '<li class="member"><div class="member-info"><div class="member-name">目前還沒有人</div></div></li>';
         return;
       }
 
       members.forEach((m, idx) => {
         const li = document.createElement("li");
         li.className = "member";
+
+        const genderClass = m.gender === "女" ? "badge-female" : "badge-male";
+        const fixedHtml = m.isFixed ? '<span class="badge badge-fixed">固定名單</span>' : '';
+        const cancelBtn = m.isFixed ? '' : `<button class="mini-btn" onclick="quickCancel('${encodeURIComponent(m.name || "")}')">快速取消</button>`;
+
         li.innerHTML = `
           <div class="member-info">
-            <div class="member-name">${idx + 1}. ${escapeHtml(m.name || "")}</div>
+            <div class="member-name">
+              <span>${idx + 1}. ${escapeHtml(m.name || "")}</span>
+              <span class="badge ${genderClass}">${escapeHtml(m.gender || "-")}</span>
+              ${fixedHtml}
+            </div>
             <div class="member-note">
               ${m.phone ? `聯絡：${escapeHtml(m.phone)}　` : ""}
-              ${m.note ? `備註：${escapeHtml(m.note)}` : ""}
+              ${m.note ? `備註：${escapeHtml(m.note)}　` : ""}
+              報名人：${escapeHtml(m.createdBy || "未記錄")}
             </div>
+            <div class="member-note">加入時間：${escapeHtml(m.createdAt || "")}</div>
           </div>
-          <div class="member-note">${escapeHtml(m.createdAt || "")}</div>
+          <div>${cancelBtn}</div>
         `;
         list.appendChild(li);
       });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
 
     function showMsg(id, text, ok = true) {
@@ -248,13 +325,19 @@
       }
     }
 
-    function escapeHtml(str) {
-      return String(str)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+    async function quickCancel(name) {
+      const decodedName = decodeURIComponent(name);
+      const code = prompt(`請輸入 ${decodedName} 的取消碼`);
+      if (!code) return;
+
+      try {
+        const data = await api("leave", { name: decodedName, cancelCode: code.trim() });
+        if (!data.ok) throw new Error(data.message || "取消失敗");
+        showMsg("leaveMsg", data.message || "已取消", true);
+        renderRoster(data);
+      } catch (e) {
+        showMsg("leaveMsg", e.message, false);
+      }
     }
 
     document.getElementById("joinForm").addEventListener("submit", async (e) => {
@@ -266,12 +349,18 @@
       try {
         const payload = {
           name: document.getElementById("name").value.trim(),
+          gender: document.getElementById("gender").value.trim(),
           phone: document.getElementById("phone").value.trim(),
+          createdBy: document.getElementById("createdBy").value.trim(),
           note: document.getElementById("note").value.trim(),
         };
         const data = await api("join", payload);
         if (!data.ok) throw new Error(data.message || "加入失敗");
-        showMsg("joinMsg", data.message || "加入成功", true);
+
+        let text = data.message || "加入成功";
+        if (data.cancelCode) text += `，取消碼：${data.cancelCode}`;
+        showMsg("joinMsg", text, true);
+
         document.getElementById("joinForm").reset();
         renderRoster(data);
       } catch (e) {
@@ -290,10 +379,11 @@
       try {
         const payload = {
           name: document.getElementById("leaveName").value.trim(),
+          cancelCode: document.getElementById("cancelCode").value.trim(),
         };
         const data = await api("leave", payload);
         if (!data.ok) throw new Error(data.message || "取消失敗");
-        showMsg("leaveMsg", data.message || "已取消", true);
+        showMsg("leaveMsg", data.message || "已取消報名", true);
         document.getElementById("leaveForm").reset();
         renderRoster(data);
       } catch (e) {
